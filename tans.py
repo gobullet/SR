@@ -3,7 +3,7 @@ import torchvision.transforms.functional as TF
 from random import random
 
 
-def transform(high_resolution, low_resolution):
+def trans(high_resolution, low_resolution):
     if random() > 0.5:
         high_resolution = TF.vflip(high_resolution)
         low_resolution = TF.vflip(low_resolution)
@@ -16,7 +16,8 @@ def transform(high_resolution, low_resolution):
     high_resolution = TF.rotate(high_resolution, angle)
     low_resolution = TF.rotate(low_resolution, angle)
 
+
     high_resolution = TF.to_tensor(high_resolution)
     low_resolution = TF.to_tensor(low_resolution)
 
-    t = torchvision.transforms.RandomRotation
+    t = TF.interpolate()

@@ -3,17 +3,18 @@ from config import get_config
 import torch
 from dataset import Datasets
 from torch.utils.data import DataLoader
-from model.architecture import IMDN
 import torch.nn as nn
 import torch.optim as optim
-import tqdm
+from tqdm import tqdm
 from torch.autograd import Variable
+from PIL import Image
+from torchvision import transforms
+from model.conv7 import ZSSRNet
 
 device = ('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def train(sr_factor, learnig_rate, num_epoch, train_loader):
-    model = IMDN()
+def train(model, sr_factor, learnig_rate, num_epoch, train_loader):
     model = model.to(device)
 
     loss_function = nn.L1Loss()
@@ -35,15 +36,20 @@ def train(sr_factor, learnig_rate, num_epoch, train_loader):
                 epoch=epoch, loss=cpu_loss, lr=learnig_rate))
 
 
+def tset(t_img):
+
+
 if __name__ == "__main__":
     config = get_config()
 
-    # make directory not existed
-    if config.checkpoint_dir is None:
-        config.checkpoint_dir = 'checkpoints'
-    if not os.path.exists(config.checkpoint_dir):
-        os.makedirs(config.checkpoint_dir)
+    img = Image.open(config.img)
+    t_img = transforms.ToTensor()(img)
 
-    train_dataset = Datasets(config.image_size, config.scale_factor)
-    train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=config.batch_size, shuffle=True)
-    train(config.scale_factor, config.learning_rate, config.num_epoch, train_loader)
+    size = t_img.size()
+    chanel = size[0]
+
+    model = ZSSRNet(input_channels=chanel)
+
+    train_dataset = Datasets(img, config.scale_factor, config.noise_std)
+    # train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=config.batch_size, shuffle=True)
+    train(model, config.scale_factor, config.learning_rate, config.num_epoch, train_loader)
