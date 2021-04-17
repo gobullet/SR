@@ -1,17 +1,19 @@
 from torch.utils.data import Dataset
 from PIL import Image
 import os
-from tans import trans
+from trans import trans
 import PIL
 import torchvision.transforms as transforms
 import torch
 
 
 class Datasets(Dataset):
-    def __init__(self, image, sf, noise_std):
+    def __init__(self, image, sf, noise_std, sub_image_size):
         self.image = image
         self.sf = sf
         self.noise_std = noise_std
+        self.sub_image_size = sub_image_size
+
         self.hr_fathers = []
         self.lr_sons = []
         # 面积越大，被选中的可能性越大
@@ -29,16 +31,15 @@ class Datasets(Dataset):
             lr = self._father_to_son(hr)
             self.lr_sons.append(lr)
 
-            self.probability.append(hr.size[0] * hr.siz[1])
+            self.probability.append(hr.size[0] * hr.size[1])
 
     def __getitem__(self, item):
         lr = self.lr_sons[item]
         hr = self.hr_fathers[item]
 
+        hr, lr = trans(hr, lr, self.sub_image_size)
 
-
-
-        images = {'lr': self.lr_sons[item], 'hr': self.hr_fathers[item]}
+        images = {'lr': lr, 'hr': hr}
         return images
 
     def __len__(self):
@@ -63,10 +64,11 @@ class Datasets(Dataset):
         lr = hr.resize(((hr.size[0] // self.sf),
                         (hr.size[1] // self.sf)))
 
-        #加噪
+        # 加噪
         t_lr = transforms.ToTensor()(lr)
-        t_lr = t_lr + (self.noise_std * torch.randn(t_lr.size()))
+        t_lr = t_lr + (self.noise_std * torch.randn(t_lr.size())).clamp(min=0, max=1)
         lr = transforms.ToPILImage()(t_lr)
+
         lr = lr.resize(hr.size, resample=PIL.Image.BICUBIC)
 
         return lr
