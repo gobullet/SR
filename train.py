@@ -13,15 +13,15 @@ from PIL import Image
 from torchvision import transforms
 from model.conv8 import ZSSRNet
 from model.resnet import ResNet
+from model.test import TestNet
 import matplotlib.pyplot as plt
 import time
-from utils import compute_ssim,compute_psnr
-
+from utils import compute_ssim, compute_psnr
 
 device = ('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def train(name_img,img, model, sr_factor, learnig_rate, num_epoch, noise_std, sub_image_size, batch_size):
+def train(name_img, img, model, sr_factor, learnig_rate, num_epoch, noise_std, sub_image_size, batch_size):
     train_dataset = Datasets(img, sr_factor, noise_std, sub_image_size)
     data_sampler = WeightedRandomSampler(train_dataset.probability, num_samples=batch_size,
                                          replacement=True)
@@ -31,9 +31,9 @@ def train(name_img,img, model, sr_factor, learnig_rate, num_epoch, noise_std, su
     model = model.to(device)
     loss_function = nn.L1Loss()
     l_loss = []
-    optimizer = optim.Adam(model.parameters(), lr=learnig_rate)
+    optimizer = optim.Adam(model.parameters(), lr=learnig_rate, betas=[0.9, 0.999])
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 500, gamma=0.1, last_epoch=-1)
-    # scheduler=torch.optim.lr_scheduler.MultiStepLR(optimizer,[700,1200,1600,2000,2500,3000], gamma=0.1, last_epoch=-1)
+    #scheduler=torch.optim.lr_scheduler.MultiStepLR(optimizer,[1000,1600,2100,2600,3000], gamma=0.1, last_epoch=-1)
 
     start = time.perf_counter()
     progress = tqdm(range(num_epoch))
@@ -51,7 +51,7 @@ def train(name_img,img, model, sr_factor, learnig_rate, num_epoch, noise_std, su
             scheduler.step()
 
             cpu_loss = loss.data.cpu()
-            progress.set_description("epoch: {epoch} Loss: {loss:.5f}, Learning Rate: {lr:.1e}".format(
+            progress.set_description("epoch: {epoch} Loss: {loss:.3f}, Learning Rate: {lr:.1e}".format(
                 epoch=epoch, loss=cpu_loss, lr=float(scheduler.get_last_lr()[-1])))
 
             l_loss.append(cpu_loss)
@@ -62,16 +62,15 @@ def train(name_img,img, model, sr_factor, learnig_rate, num_epoch, noise_std, su
     plt.title('loss')
     plt.ylim(0, 0.1)
     plt.plot(l_loss)
-    plt.savefig('../output/' +name_img + '_loss.png')
+    plt.savefig('../output/' + name_img + '_loss.png')
 
 
 def test(name_img, model, img, sr_factor, gt=False, img_gt=None):
-
     model.eval()
 
     img_bicubic = img.resize((int(img.size[0] * sr_factor),
-                                      int(img.size[1] * sr_factor)), resample=PIL.Image.BICUBIC)
-    img_bicubic.save('../output/' +name_img + '_bicubic.png')
+                              int(img.size[1] * sr_factor)), resample=PIL.Image.BICUBIC)
+    img_bicubic.save('../output/' + name_img + '_bicubic.png')
 
     input = transforms.ToTensor()(img_bicubic)
     input = torch.unsqueeze(input, 0)
@@ -85,11 +84,10 @@ def test(name_img, model, img, sr_factor, gt=False, img_gt=None):
     out.save('../output/' + name_img + '_zssr.png')
 
     if gt:
-        ssim_bicubic = compute_ssim(img_bicubic, img_gt)
-        psnr_bicubic = compute_psnr(img_bicubic, img_gt)
-
-        ssim_zssr = compute_ssim(out, img_gt)
-        psnr_zssr = compute_psnr(out, img_gt)
+        ssim_bicubic = compute_ssim(img_gt, img_bicubic)
+        psnr_bicubic = compute_psnr(img_gt, img_bicubic)
+        ssim_zssr = compute_ssim(img_gt, out)
+        psnr_zssr = compute_psnr(img_gt, out)
         print("ssim_bicubic:\t{:.3f}".format(ssim_bicubic))
         print("ssim_zssr:\t{:.3f}".format(ssim_zssr))
         print("psnr_bicubic:\t{:.2f}".format(psnr_bicubic))
@@ -110,7 +108,7 @@ if __name__ == "__main__":
     gt = False
     img_gt = None
     if os.path.exists(name_img + r"_gt.png"):
-        gt =True
+        gt = True
         gt_root = name_img + r"_gt.png"
         img_gt = Image.open(gt_root)
 
@@ -120,9 +118,9 @@ if __name__ == "__main__":
     channel = size[0]
     # t_img=torch.unsqueeze(t_img,0)
 
-    model = ResNet(input_channels=channel)
+    model = ZSSRNet(input_channels=channel)
 
-    train(name_img,img, model, config.scale_factor, config.learning_rate, config.num_epoch, config.noise_std,
+    train(name_img, img, model, config.scale_factor, config.learning_rate, config.num_epoch, config.noise_std,
           config.crop_size, config.batch_size)
 
-    test(name_img,model, img, config.scale_factor,gt,img_gt)
+    test(name_img, model, img, config.scale_factor, gt, img_gt)
