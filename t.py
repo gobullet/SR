@@ -10,29 +10,20 @@ from tqdm import tqdm
 from torch.autograd import Variable
 from PIL import Image
 from torchvision import transforms
-from model.conv7 import ZSSRNet
+from model.conv8 import ZSSRNet
 import matplotlib.pyplot as plt
 
 
-"""
+
 if __name__ == '__main__':
     config = get_config()
-
-    img = Image.open(config.img)
-    train_dataset = Datasets(img, config.scale_factor, config.noise_std, config.sub_image_size)
-    data_sampler = WeightedRandomSampler(train_dataset.probability, num_samples=4, replacement=True)
-    train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=4,
-                                               sampler=data_sampler)
-    
-    for image in train_dataset:
-        input()
-        hr = image["hr"]
-        lr = image["lr"]
-        hr.show()
+    print("epoch: {epoch} Loss: {loss:.5f}, Learning Rate: {lr:.3f}".format(
+        epoch=1, loss=2.2, lr=(3)))
 
 
 
-    
+
+    '''
     for epoch in range(10):
         input()
         for step, batch in enumerate(train_loader):
@@ -43,6 +34,13 @@ if __name__ == '__main__':
 
 
             h0.show()
-"""
+            '''
+
+'''
 if __name__ == '__main__':
-    print(format(1.23456, '.2f'))
+    torch.manual_seed(1)
+    x = torch.randn(2, 3)
+    y = torch.randn(1, 3)
+    out=torch.cat((x,y),-2)
+    print(out)
+    '''

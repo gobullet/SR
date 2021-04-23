@@ -39,6 +39,25 @@ class Datasets(Dataset):
 
         hr, lr = trans(hr, lr, self.sub_image_size)
 
+        # fill to subsieze*subsize
+        size = hr.size()
+        if size[1] < self.sub_image_size or size[2] < self.sub_image_size:
+            dh = self.sub_image_size - size[1]
+            dw = self.sub_image_size - size[2]
+            zero11 = torch.zeros((size[0], dh//2, size[2]), dtype=torch.float32)
+            zero12 = torch.zeros((size[0], dh-dh//2, size[2]), dtype=torch.float32)
+            zero21 = torch.zeros((size[0], self.sub_image_size, dw//2), dtype=torch.float32)
+            zero22 = torch.zeros((size[0], self.sub_image_size, dw-dw//2), dtype=torch.float32)
+            hr = torch.cat((hr, zero11), 1)
+            hr = torch.cat((hr, zero12), -2)
+            hr = torch.cat((hr, zero21), 2)
+            hr = torch.cat((hr, zero22), -1)
+            lr = torch.cat((lr, zero11), 1)
+            lr = torch.cat((lr, zero12), -2)
+            lr = torch.cat((lr, zero21), 2)
+            lr = torch.cat((lr, zero22), -1)
+
+
         images = {'lr': lr, 'hr': hr}
         return images
 

@@ -1,7 +1,5 @@
 import os
-
 import PIL
-
 from config import get_config
 import torch
 from dataset import Datasets
@@ -13,80 +11,118 @@ from tqdm import tqdm
 from torch.autograd import Variable
 from PIL import Image
 from torchvision import transforms
-from model.conv7 import ZSSRNet
+from model.conv8 import ZSSRNet
+from model.resnet import ResNet
 import matplotlib.pyplot as plt
 import time
+from utils import compute_ssim,compute_psnr
+
 
 device = ('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def train(model, sr_factor, learnig_rate, num_batch, train_loader):
-    model = model.to(device)
+def train(name_img,img, model, sr_factor, learnig_rate, num_epoch, noise_std, sub_image_size, batch_size):
+    train_dataset = Datasets(img, sr_factor, noise_std, sub_image_size)
+    data_sampler = WeightedRandomSampler(train_dataset.probability, num_samples=batch_size,
+                                         replacement=True)
+    train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size,
+                                               sampler=data_sampler)
 
+    model = model.to(device)
     loss_function = nn.L1Loss()
-    optimizer = optim.Adam(model.parameters(), lr=learnig_rate)
     l_loss = []
+    optimizer = optim.Adam(model.parameters(), lr=learnig_rate)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 500, gamma=0.1, last_epoch=-1)
+    # scheduler=torch.optim.lr_scheduler.MultiStepLR(optimizer,[700,1200,1600,2000,2500,3000], gamma=0.1, last_epoch=-1)
 
     start = time.perf_counter()
-    progress = tqdm(range(num_batch))
+    progress = tqdm(range(num_epoch))
     for epoch in progress:
-        for step, image in enumerate(train_loader):
-            low_resolution = Variable(image['lr'].to(device))
-            high_resolution = Variable(image['hr'].to(device))
-            optimizer.zero_grad()
+        for iter, image in enumerate(train_loader):
+            model.zero_grad()
+
+            low_resolution = image['lr'].to(device)
+            high_resolution = image['hr'].to(device)
+
             out = model(low_resolution)
             loss = loss_function(out, high_resolution)
             loss.backward()
             optimizer.step()
+            scheduler.step()
 
-            cpu_loss = loss.data.cpu().numpy()
-            progress.set_description("epoch: {epoch} Loss: {loss:.5f}, Learning Rate: {lr}".format(
-                epoch=epoch, loss=cpu_loss, lr=learnig_rate))
+            cpu_loss = loss.data.cpu()
+            progress.set_description("epoch: {epoch} Loss: {loss:.5f}, Learning Rate: {lr:.1e}".format(
+                epoch=epoch, loss=cpu_loss, lr=float(scheduler.get_last_lr()[-1])))
+
             l_loss.append(cpu_loss)
 
     end = time.perf_counter()
-    print('process time:' + str(end - start))
+    print('process time:{:.1f}'.format(end - start))
 
     plt.title('loss')
+    plt.ylim(0, 0.1)
     plt.plot(l_loss)
-    plt.savefig('loss.png')
-    plt.show()
+    plt.savefig('../output/' +name_img + '_loss.png')
 
 
-def test(model, img, sr_factor):
+def test(name_img, model, img, sr_factor, gt=False, img_gt=None):
+
     model.eval()
 
-    img = img.resize((int(img.size[0] * sr_factor),
-                      int(img.size[1] * sr_factor)), resample=PIL.Image.BICUBIC)
-    img = transforms.ToTensor()(img)
-    img = torch.unsqueeze(img, 0)
+    img_bicubic = img.resize((int(img.size[0] * sr_factor),
+                                      int(img.size[1] * sr_factor)), resample=PIL.Image.BICUBIC)
+    img_bicubic.save('../output/' +name_img + '_bicubic.png')
 
-    input = Variable(img.to(device))
-    out=model(input)
-    out=out.data.cpu()
-    out=out.clamp(min=0, max=1)
-    out=torch.squeeze(out,0)
+    input = transforms.ToTensor()(img_bicubic)
+    input = torch.unsqueeze(input, 0)
+    input = input.to(device)
+    with torch.no_grad():
+        out = model(input)
+    out = out.data.cpu()
+    out = out.clamp(min=0, max=1)
+    out = torch.squeeze(out, 0)
     out = transforms.ToPILImage()(out)
-    out.save('zssr.png')
+    out.save('../output/' + name_img + '_zssr.png')
 
+    if gt:
+        ssim_bicubic = compute_ssim(img_bicubic, img_gt)
+        psnr_bicubic = compute_psnr(img_bicubic, img_gt)
+
+        ssim_zssr = compute_ssim(out, img_gt)
+        psnr_zssr = compute_psnr(out, img_gt)
+        print("ssim_bicubic:\t{:.3f}".format(ssim_bicubic))
+        print("ssim_zssr:\t{:.3f}".format(ssim_zssr))
+        print("psnr_bicubic:\t{:.2f}".format(psnr_bicubic))
+        print("psnr_zssr:\t{:.2f}".format(psnr_zssr))
+
+
+'''
+def init_weights(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1:
+        nn.init.kaiming_normal_(m.weight.data, mode='fan_in', nonlinearity='relu')
+'''
 
 if __name__ == "__main__":
     config = get_config()
+    name_img = os.path.basename(config.img)
+    name_img, ex = os.path.splitext(name_img)
+    gt = False
+    img_gt = None
+    if os.path.exists(name_img + r"_gt.png"):
+        gt =True
+        gt_root = name_img + r"_gt.png"
+        img_gt = Image.open(gt_root)
 
     img = Image.open(config.img)
     t_img = transforms.ToTensor()(img)
-
     size = t_img.size()
-    chanel = size[0]
+    channel = size[0]
     # t_img=torch.unsqueeze(t_img,0)
 
-    model = ZSSRNet(input_channels=chanel)
+    model = ResNet(input_channels=channel)
 
-    train_dataset = Datasets(img, config.scale_factor, config.noise_std, config.sub_image_size)
-    data_sampler = WeightedRandomSampler(train_dataset.probability, num_samples=config.batch_size,
-                                         replacement=True)
-    train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=config.batch_size,
-                                               sampler=data_sampler)
-    train(model, config.scale_factor, config.learning_rate, config.num_batches, train_loader)
+    train(name_img,img, model, config.scale_factor, config.learning_rate, config.num_epoch, config.noise_std,
+          config.crop_size, config.batch_size)
 
-    test(model, img, config.scale_factor)
+    test(name_img,model, img, config.scale_factor,gt,img_gt)
