@@ -100,8 +100,10 @@ class Datasets2(Dataset):
         w, h = low_resolution.size
         sw, sh = self.crop_size // self.sf, self.crop_size // self.sf
 
-        if w < sw or h < sh:
-            sh, sw = h // 2, w // 2
+        if w < sw:
+            sw = w // 2
+        if h < sh:
+            sh = h // 2
 
         i = random.randint(0, h - sh)
         j = random.randint(0, w - sw)

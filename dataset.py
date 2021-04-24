@@ -9,7 +9,6 @@ import torchvision.transforms.functional as TF
 import random
 
 
-
 class Datasets(Dataset):
     def __init__(self, image, sf, noise_std, crop_size):
         self.image = image
@@ -45,8 +44,8 @@ class Datasets(Dataset):
         # fill to subsieze*subsize
         size = lr.size()
         if size[1] < self.crop_size or size[2] < self.crop_size:
-            hr = self._fill(hr,self.crop_size)
-            lr = self._fill(lr,self.crop_size)
+            hr = self._fill(hr, self.crop_size)
+            lr = self._fill(lr, self.crop_size)
 
         images = {'lr': lr, 'hr': hr}
         return images
@@ -77,12 +76,12 @@ class Datasets(Dataset):
         t_lr = transforms.ToTensor()(lr)
         t_lr = t_lr + (self.noise_std * torch.randn(t_lr.size())).clamp(min=0, max=1)
         lr = transforms.ToPILImage()(t_lr)
-
+        # 放大sf倍，作为输入
         lr = lr.resize(hr.size, resample=PIL.Image.BICUBIC)
 
         return lr
 
-    def _trans(self,high_resolution, low_resolution):
+    def _trans(self, high_resolution, low_resolution):
         # mirror reflections
         if random.random() > 0.5:
             high_resolution = TF.vflip(high_resolution)
@@ -101,8 +100,10 @@ class Datasets(Dataset):
         w, h = low_resolution.size
         sw, sh = self.crop_size, self.crop_size
 
-        if w < sw or h < sh:
-            sh, sw = h // 2, w // 2
+        if w < sw:
+            sw = w // 2
+        if h < sh:
+            sh = h// 2
 
         i = random.randint(0, h - sh)
         j = random.randint(0, w - sw)
@@ -110,11 +111,10 @@ class Datasets(Dataset):
         high_resolution = TF.crop(high_resolution, i, j, sh, sw)
         low_resolution = TF.crop(low_resolution, i, j, sh, sw)
 
-
         high_resolution = TF.to_tensor(high_resolution)
-        #high_resolution = torch.unsqueeze(high_resolution, 0)
+        # high_resolution = torch.unsqueeze(high_resolution, 0)
         low_resolution = TF.to_tensor(low_resolution)
-        #low_resolution = torch.unsqueeze(low_resolution, 0)
+        # low_resolution = torch.unsqueeze(low_resolution, 0)
 
         return high_resolution, low_resolution
 
@@ -124,11 +124,11 @@ class Datasets(Dataset):
         dh = size - tensor_size[1]
         dw = size - tensor_size[2]
         zero1 = torch.zeros((tensor_size[0], dh, tensor_size[2]), dtype=torch.float32)
-        #zero12 = torch.zeros((tensor_size[0], dh - dh // 2, tensor_size[2]), dtype=torch.float32)
+        # zero12 = torch.zeros((tensor_size[0], dh - dh // 2, tensor_size[2]), dtype=torch.float32)
         zero2 = torch.zeros((tensor_size[0], size, dw), dtype=torch.float32)
-        #zero22 = torch.zeros((tensor_size[0], size, dw - dw // 2), dtype=torch.float32)
+        # zero22 = torch.zeros((tensor_size[0], size, dw - dw // 2), dtype=torch.float32)
         t = torch.cat((t, zero1), 1)
-        #t = torch.cat((t, zero12), -2)
+        # t = torch.cat((t, zero12), -2)
         t = torch.cat((t, zero2), 2)
-        #t = torch.cat((t, zero22), -1)
+        # t = torch.cat((t, zero22), -1)
         return t

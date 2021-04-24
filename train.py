@@ -3,6 +3,7 @@ import PIL
 from config import get_config
 import torch
 from dataset import Datasets
+from dataset2 import Datasets2
 from torch.utils.data import DataLoader
 from torch.utils.data import WeightedRandomSampler
 import torch.nn as nn
@@ -23,7 +24,7 @@ device = ('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def train(name_img, img, model, sr_factor, learnig_rate, num_epoch, noise_std, sub_image_size, batch_size):
-    train_dataset = Datasets(img, sr_factor, noise_std, sub_image_size)
+    train_dataset = Datasets2(img, sr_factor, noise_std, sub_image_size)
     data_sampler = WeightedRandomSampler(train_dataset.probability, num_samples=batch_size,
                                          replacement=True)
     train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size,
@@ -119,7 +120,7 @@ if __name__ == "__main__":
     channel = size[0]
     # t_img=torch.unsqueeze(t_img,0)
 
-    model = ZSSRNet(input_channels=channel,sf=config.scale_factor)
+    model = TestNet(input_channels=channel,sf=config.scale_factor)
 
     train(name_img, img, model, config.scale_factor, config.learning_rate, config.num_epoch, config.noise_std,
           config.crop_size, config.batch_size)
