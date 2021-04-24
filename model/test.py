@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class TestNet(nn.Module):
-    def __init__(self, input_channels=3, kernel_size=3, channels=64):
+    def __init__(self, input_channels=3, sf=2, kernel_size=3, channels=64):
         super(TestNet, self).__init__()
 
         self.conv0 = nn.Conv2d(input_channels, channels * 6 // 4, kernel_size=kernel_size, padding=kernel_size // 2,
@@ -15,22 +15,24 @@ class TestNet(nn.Module):
         self.conv4 = nn.Conv2d(channels, channels, kernel_size=kernel_size, padding=kernel_size // 2, bias=True)
         self.conv5 = nn.Conv2d(channels, channels, kernel_size=kernel_size, padding=kernel_size // 2, bias=True)
         self.conv6 = nn.Conv2d(channels, channels // 2, kernel_size=kernel_size, padding=kernel_size // 2, bias=True)
-        self.conv7 = nn.Conv2d(channels // 2, input_channels, kernel_size=kernel_size, padding=kernel_size // 2,
-                               bias=True)
+        # self.conv7 = nn.Conv2d(channels // 2, input_channels, kernel_size=kernel_size, padding=kernel_size // 2,bias=True)
+        self.conv7 = nn.Conv2d(channels // 2, input_channels * sf ** 2, kernel_size=kernel_size,
+                               padding=kernel_size // 2, bias=True)
+        self.sub_pixel = nn.PixelShuffle(sf)
 
         self.relu = nn.ReLU()
         self._initialize_weights()
 
     def forward(self, x):
-        res = self.relu(self.conv0(x))
-        res = self.relu(self.conv1(res))
+        fea = self.relu(self.conv0(x))
+
+        res = self.relu(self.conv1(fea))
         res = self.relu(self.conv2(res))
         res = self.relu(self.conv3(res))
         res = self.relu(self.conv4(res))
         res = self.relu(self.conv5(res))
         res = self.relu(self.conv6(res))
-        res = self.conv7(res)
-        out = res + x
+        out = self.sub_pixel(self.conv7(res+fea))
 
         return out
 
