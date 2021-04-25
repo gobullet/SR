@@ -19,6 +19,7 @@ class Datasets2(Dataset):
 
         self.hr_fathers = []
         self.lr_sons = []
+        self.lr_sons_bicubic = []
         # 面积越大，被选中的可能性越大
         self.probability = []
 
@@ -39,6 +40,7 @@ class Datasets2(Dataset):
     def __getitem__(self, item):
         lr = self.lr_sons[item]
         hr = self.hr_fathers[item]
+        #lr_bicubic = self.lr_sons_bicubic[item]
 
         hr, lr = self._trans(hr, lr)
 
@@ -112,7 +114,6 @@ class Datasets2(Dataset):
         low_resolution = TF.crop(low_resolution, i, j, sh, sw)
 
         high_resolution = TF.to_tensor(high_resolution)
-
         low_resolution = TF.to_tensor(low_resolution)
 
         return high_resolution, low_resolution

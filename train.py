@@ -20,11 +20,13 @@ import time
 from utils import compute_ssim, compute_psnr
 
 device = ('cuda' if torch.cuda.is_available() else 'cpu')
-#device = 'cpu'
+
+
+# device = 'cpu'
 
 
 def train(name_img, img, model, sr_factor, learnig_rate, num_epoch, noise_std, sub_image_size, batch_size):
-    train_dataset = Datasets(img, sr_factor, noise_std, sub_image_size)
+    train_dataset = Datasets2(img, sr_factor, noise_std, sub_image_size)
     data_sampler = WeightedRandomSampler(train_dataset.probability, num_samples=batch_size,
                                          replacement=True)
     train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size,
@@ -34,8 +36,9 @@ def train(name_img, img, model, sr_factor, learnig_rate, num_epoch, noise_std, s
     loss_function = nn.L1Loss()
     l_loss = []
     optimizer = optim.Adam(model.parameters(), lr=learnig_rate, betas=[0.9, 0.999])
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 500, gamma=0.1, last_epoch=-1)
-    #scheduler=torch.optim.lr_scheduler.MultiStepLR(optimizer,[1000,1600,2100,2600,3000], gamma=0.1, last_epoch=-1)
+    # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 600, gamma=0.1, last_epoch=-1)
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, [600, 1200, 1700, 2200, 2600, 3000], gamma=0.1,
+                                                    last_epoch=-1)
 
     start = time.perf_counter()
     progress = tqdm(range(num_epoch))
@@ -95,6 +98,7 @@ def test(name_img, model, img, sr_factor, gt=False, img_gt=None):
         print("psnr_bicubic:\t{:.2f}".format(psnr_bicubic))
         print("psnr_zssr:\t{:.2f}".format(psnr_zssr))
 
+
 def test2(name_img, model, img, sr_factor, gt=False, img_gt=None):
     model.eval()
 
@@ -123,6 +127,7 @@ def test2(name_img, model, img, sr_factor, gt=False, img_gt=None):
         print("psnr_bicubic:\t{:.2f}".format(psnr_bicubic))
         print("psnr_zssr:\t{:.2f}".format(psnr_zssr))
 
+
 '''
 def init_weights(m):
     classname = m.__class__.__name__
@@ -147,9 +152,9 @@ if __name__ == "__main__":
     channel = size[0]
     # t_img=torch.unsqueeze(t_img,0)
 
-    model = ResNet(input_channels=channel,sf=config.scale_factor)
+    model = ResNet(input_channels=channel, sf=config.scale_factor)
 
     train(name_img, img, model, config.scale_factor, config.learning_rate, config.num_epoch, config.noise_std,
           config.crop_size, config.batch_size)
 
-    test(name_img, model, img, config.scale_factor, gt, img_gt)
+    test2(name_img, model, img, config.scale_factor, gt, img_gt)

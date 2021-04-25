@@ -10,6 +10,8 @@ from tqdm import tqdm
 from torch.autograd import Variable
 from PIL import Image
 from torchvision import transforms
+
+from dataset2 import Datasets2
 from model.conv8 import ZSSRNet
 import matplotlib.pyplot as plt
 
@@ -17,24 +19,27 @@ import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     config = get_config()
-    print("epoch: {epoch} Loss: {loss:.5f}, Learning Rate: {lr:.3f}".format(
-        epoch=1, loss=2.2, lr=(3)))
+    img = Image.open(config.img)
+    train_dataset = Datasets2(img, config.scale_factor, config.noise_std, config.crop_size)
+    data_sampler = WeightedRandomSampler(train_dataset.probability, num_samples=config.batch_size,
+                                         replacement=True)
+    train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=config.batch_size,
+                                               sampler=data_sampler)
 
 
 
-
-    '''
-    for epoch in range(10):
-        input()
-        for step, batch in enumerate(train_loader):
-            low_resolution = batch['lr']
-            high_resolution = batch['hr']
-            h0 = high_resolution[0]
+    for step, image in enumerate(train_loader):
+        for i in range(config.batch_size):
+            input()
+            low_resolution = image['lr']
+            high_resolution = image['hr']
+            h0 = high_resolution[i]
             h0 = transforms.ToPILImage()(h0)
-
-
             h0.show()
-            '''
+            l0 = low_resolution[i]
+            l0 = transforms.ToPILImage()(l0)
+            l0.show()
+
 
 '''
 if __name__ == '__main__':
