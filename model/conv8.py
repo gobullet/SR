@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class ZSSRNet(nn.Module):
-    def __init__(self, input_channels=3,sf=2, kernel_size=3, channels=128):
+    def __init__(self, input_channels=3,sf=2, kernel_size=3, channels=64):
         super(ZSSRNet, self).__init__()
 
         self.conv0 = nn.Conv2d(input_channels, channels, kernel_size=kernel_size, padding=kernel_size // 2, bias=True)
