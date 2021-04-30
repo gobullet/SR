@@ -14,9 +14,9 @@ from torchvision import transforms
 from dataset2 import Datasets2
 from model.conv8 import ZSSRNet
 import matplotlib.pyplot as plt
+import pytest
 
-
-
+"""
 if __name__ == '__main__':
     config = get_config()
     img = Image.open(config.img)
@@ -25,8 +25,6 @@ if __name__ == '__main__':
                                          replacement=True)
     train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=config.batch_size,
                                                sampler=data_sampler)
-
-
 
     for step, image in enumerate(train_loader):
         for i in range(config.batch_size):
@@ -39,13 +37,23 @@ if __name__ == '__main__':
             l0 = low_resolution[i]
             l0 = transforms.ToPILImage()(l0)
             l0.show()
+    a = transforms
+"""
 
-
-'''
 if __name__ == '__main__':
-    torch.manual_seed(1)
-    x = torch.randn(2, 3)
-    y = torch.randn(1, 3)
-    out=torch.cat((x,y),-2)
-    print(out)
-    '''
+    config = get_config()
+
+    crop_size = config.crop_size
+
+    img = Image.open(config.img)
+    t_img = transforms.ToTensor()(img)
+    size = t_img.size()
+
+    p_size = size[1:3]
+    while crop_size > min(p_size[0:2]) or crop_size ** 2 > p_size[0] * p_size[1] // 4:
+        crop_size = crop_size // 2
+
+
+
+
+

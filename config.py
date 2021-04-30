@@ -2,7 +2,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--crop_size', type=int, default=60, help='the height / width of the hr image to network')
+parser.add_argument('--crop_size', type=int, default=120, help='the height / width of the hr image to network')
 parser.add_argument('--batch_size', type=int, default=10, help='batch size')
 parser.add_argument('--num_epoch', type=int, default=3000, help='number of epochs to train for')
 parser.add_argument('--scale_factor', type=int, default=2, help='scale factor for super resolution')

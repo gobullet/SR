@@ -5,7 +5,7 @@ class ResBlock(nn.Module):
         super(ResBlock, self).__init__()
 
         self.conv0 = nn.Conv2d(input_channels, channels, kernel_size=kernel_size, padding=kernel_size // 2, bias=True)
-        self.conv1 = nn.Conv2d(channels, channels, kernel_size=kernel_size, padding=kernel_size // 2, bias=True)
+        self.conv1 = nn.Conv2d(channels, input_channels, kernel_size=kernel_size, padding=kernel_size // 2, bias=True)
 
         self.relu = nn.ReLU()
         self._initialize_weights()

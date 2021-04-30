@@ -36,9 +36,9 @@ def train(name_img, img, model, sr_factor, learnig_rate, num_epoch, noise_std, s
     loss_function = nn.L1Loss()
     l_loss = []
     optimizer = optim.Adam(model.parameters(), lr=learnig_rate, betas=[0.9, 0.999])
-    # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 600, gamma=0.1, last_epoch=-1)
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, [600, 1200, 1700, 2200, 2600, 3000], gamma=0.1,
-                                                    last_epoch=-1)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 500, gamma=0.1, last_epoch=-1)
+    # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, [600, 1200, 1700, 2200, 2600, 3000], gamma=0.1,
+    #                                                 last_epoch=-1)
 
     start = time.perf_counter()
     progress = tqdm(range(num_epoch))
@@ -128,15 +128,9 @@ def test2(name_img, model, img, sr_factor, gt=False, img_gt=None):
         print("psnr_zssr:\t{:.2f}".format(psnr_zssr))
 
 
-'''
-def init_weights(m):
-    classname = m.__class__.__name__
-    if classname.find('Conv') != -1:
-        nn.init.kaiming_normal_(m.weight.data, mode='fan_in', nonlinearity='relu')
-'''
-
 if __name__ == "__main__":
     config = get_config()
+
     name_img = os.path.basename(config.img)
     name_img, ex = os.path.splitext(name_img)
     gt = False
@@ -150,11 +144,16 @@ if __name__ == "__main__":
     t_img = transforms.ToTensor()(img)
     size = t_img.size()
     channel = size[0]
-    # t_img=torch.unsqueeze(t_img,0)
+
+    crop_size = config.crop_size
+    p_size = size[1:3]
+    while crop_size > min(p_size[0:2]) or crop_size ** 2 > p_size[0] * p_size[1] // 4:
+        crop_size = crop_size // 2
+    print("crop_size:" + str(crop_size))
 
     model = ResNet(input_channels=channel, sf=config.scale_factor)
 
     train(name_img, img, model, config.scale_factor, config.learning_rate, config.num_epoch, config.noise_std,
-          config.crop_size, config.batch_size)
+          crop_size, config.batch_size)
 
     test2(name_img, model, img, config.scale_factor, gt, img_gt)

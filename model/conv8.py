@@ -1,11 +1,9 @@
+# ZSSR网络结构
 import torch
 import torch.nn as nn
-
-
 class ZSSRNet(nn.Module):
     def __init__(self, input_channels=3,sf=2, kernel_size=3, channels=64):
         super(ZSSRNet, self).__init__()
-
         self.conv0 = nn.Conv2d(input_channels, channels, kernel_size=kernel_size, padding=kernel_size // 2, bias=True)
         self.conv1 = nn.Conv2d(channels, channels, kernel_size=kernel_size, padding=kernel_size // 2, bias=True)
         self.conv2 = nn.Conv2d(channels, channels, kernel_size=kernel_size, padding=kernel_size // 2, bias=True)
@@ -14,7 +12,6 @@ class ZSSRNet(nn.Module):
         self.conv5 = nn.Conv2d(channels, channels, kernel_size=kernel_size, padding=kernel_size // 2, bias=True)
         self.conv6 = nn.Conv2d(channels, channels, kernel_size=kernel_size, padding=kernel_size // 2, bias=True)
         self.conv7 = nn.Conv2d(channels, input_channels, kernel_size=kernel_size, padding=kernel_size // 2, bias=True)
-
         self.relu = nn.ReLU()
         self._initialize_weights()
 
