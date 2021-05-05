@@ -14,7 +14,6 @@ from PIL import Image
 from torchvision import transforms
 from model.conv8 import ZSSRNet
 from model.resnet import ResNet
-from model.test import TestNet
 import matplotlib.pyplot as plt
 import time
 from utils import compute_ssim, compute_psnr
@@ -22,12 +21,9 @@ from utils import compute_ssim, compute_psnr
 device = ('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-# device = 'cpu'
-
-
 def train(name_img, img, model, sr_factor, learnig_rate, num_epoch, noise_std, sub_image_size, batch_size):
-    train_dataset = Datasets2(img, sr_factor, noise_std, sub_image_size)
-    data_sampler = WeightedRandomSampler(train_dataset.probability, num_samples=batch_size,
+    train_dataset = Datasets(img, sr_factor, noise_std, sub_image_size)
+    data_sampler = WeightedRandomSampler(train_dataset.probability, num_samples=10,
                                          replacement=True)
     train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size,
                                                sampler=data_sampler)
@@ -71,11 +67,14 @@ def train(name_img, img, model, sr_factor, learnig_rate, num_epoch, noise_std, s
 
 
 def test(name_img, model, img, sr_factor, gt=False, img_gt=None):
+    out_file = r'../output'
+    if not os.path.exists(out_file):
+        os.makedirs(out_file)
     model.eval()
 
     img_bicubic = img.resize((int(img.size[0] * sr_factor),
                               int(img.size[1] * sr_factor)), resample=PIL.Image.BICUBIC)
-    img_bicubic.save('../output/' + name_img + '_bicubic.png')
+    img_bicubic.save(os.path.join(out_file, name_img + '_bicubic.png'))
 
     input = transforms.ToTensor()(img_bicubic)
     input = torch.unsqueeze(input, 0)
@@ -86,61 +85,25 @@ def test(name_img, model, img, sr_factor, gt=False, img_gt=None):
     out = out.clamp(min=0, max=1)
     out = torch.squeeze(out, 0)
     out = transforms.ToPILImage()(out)
-    out.save('../output/' + name_img + '_zssr.png')
+    out.save(os.path.join(out_file, name_img + '_zssr.png'))
 
     if gt:
         ssim_bicubic = compute_ssim(img_gt, img_bicubic)
         psnr_bicubic = compute_psnr(img_gt, img_bicubic)
         ssim_zssr = compute_ssim(img_gt, out)
         psnr_zssr = compute_psnr(img_gt, out)
-        print("ssim_bicubic:\t{:.3f}".format(ssim_bicubic))
-        print("ssim_zssr:\t{:.3f}".format(ssim_zssr))
+        print("ssim_bicubic:\t{:.4f}".format(ssim_bicubic))
+        print("ssim_zssr:\t{:.4f}".format(ssim_zssr))
         print("psnr_bicubic:\t{:.2f}".format(psnr_bicubic))
         print("psnr_zssr:\t{:.2f}".format(psnr_zssr))
+        fo = open(os.path.join(out_file, 'PSNR_and_SSIM.txt'), mode='a')
+        fo.write(str(name_img) + ':\n')
+        fo.write('bicubic: psnr:{:.2f}\tssim:{:.4f}\tzssr: psnr_zssr:{:.2f}\tssim:{:.4f}\n'
+                 .format(psnr_bicubic, ssim_bicubic, psnr_zssr, ssim_zssr))
+        return ssim_bicubic, psnr_bicubic, ssim_zssr, psnr_zssr
 
 
-def test2(name_img, model, img, sr_factor, gt=False, img_gt=None):
-    model.eval()
-
-    img_bicubic = img.resize((int(img.size[0] * sr_factor),
-                              int(img.size[1] * sr_factor)), resample=PIL.Image.BICUBIC)
-    img_bicubic.save('../output/' + name_img + '_bicubic.png')
-
-    input = transforms.ToTensor()(img)
-    input = torch.unsqueeze(input, 0)
-    input = input.to(device)
-    with torch.no_grad():
-        out = model(input)
-    out = out.data.cpu()
-    out = out.clamp(min=0, max=1)
-    out = torch.squeeze(out, 0)
-    out = transforms.ToPILImage()(out)
-    out.save('../output/' + name_img + '_zssr.png')
-
-    if gt:
-        ssim_bicubic = compute_ssim(img_gt, img_bicubic)
-        psnr_bicubic = compute_psnr(img_gt, img_bicubic)
-        ssim_zssr = compute_ssim(img_gt, out)
-        psnr_zssr = compute_psnr(img_gt, out)
-        print("ssim_bicubic:\t{:.3f}".format(ssim_bicubic))
-        print("ssim_zssr:\t{:.3f}".format(ssim_zssr))
-        print("psnr_bicubic:\t{:.2f}".format(psnr_bicubic))
-        print("psnr_zssr:\t{:.2f}".format(psnr_zssr))
-
-
-if __name__ == "__main__":
-    config = get_config()
-
-    name_img = os.path.basename(config.img)
-    name_img, ex = os.path.splitext(name_img)
-    gt = False
-    img_gt = None
-    if os.path.exists(name_img + r"_gt.png"):
-        gt = True
-        gt_root = name_img + r"_gt.png"
-        img_gt = Image.open(gt_root)
-
-    img = Image.open(config.img)
+def com(name_img, img, gt, img_gt, config):
     t_img = transforms.ToTensor()(img)
     size = t_img.size()
     channel = size[0]
@@ -151,9 +114,51 @@ if __name__ == "__main__":
         crop_size = crop_size // 2
     print("crop_size:" + str(crop_size))
 
-    model = ResNet(input_channels=channel, sf=config.scale_factor)
+    model = ZSSRNet(input_channels=channel, sf=config.scale_factor)
 
     train(name_img, img, model, config.scale_factor, config.learning_rate, config.num_epoch, config.noise_std,
           crop_size, config.batch_size)
 
-    test2(name_img, model, img, config.scale_factor, gt, img_gt)
+    ssim_bicubic, psnr_bicubic, ssim_zssr, psnr_zssr = test(name_img, model, img, config.scale_factor, gt, img_gt)
+    return ssim_bicubic, psnr_bicubic, ssim_zssr, psnr_zssr
+
+
+if __name__ == "__main__":
+    config = get_config()
+    # img单个图片
+    if os.path.isfile(config.img):
+        root, name_img = os.path.split(config.img)
+        name_img, ex = os.path.splitext(name_img)
+        gt = False
+        img_gt = None
+        if os.path.exists(os.path.join(root, name_img + r"_gt.png")):
+            gt = True
+            gt_route = os.path.join(root, name_img + r"_gt.png")
+            img_gt = Image.open(gt_route)
+        img = Image.open(config.img)
+        com(name_img, img, gt, img_gt, config)
+
+    # img为文件夹
+    elif os.path.isdir(config.img):
+        sum_ssim_bicubic = 0
+        sum_psnr_bicubic = 0
+        sum_ssim_zssr = 0
+        sum_psnr_zssr = 0
+        num = 0
+        for root, dirs, files in os.walk(config.img):
+            for img in files:
+                name_img, ex = os.path.splitext(img)
+                gt = True
+                gt_route = os.path.join(config.gt, img)
+                img_gt = Image.open(gt_route)
+                img = Image.open(os.path.join(root, img))
+                ssim_bicubic, psnr_bicubic, ssim_zssr, psnr_zssr = com(name_img, img, gt, img_gt, config)
+                sum_psnr_bicubic = sum_psnr_bicubic + psnr_bicubic
+                sum_ssim_bicubic = sum_ssim_bicubic + ssim_bicubic
+                sum_psnr_zssr = sum_psnr_zssr + psnr_zssr
+                sum_ssim_zssr = sum_ssim_zssr + ssim_zssr
+                num = num + 1
+        print("ave_ssim_bicubic:\t{:.4f}".format(sum_ssim_bicubic / num))
+        print("ave_ssim_zssr:\t{:.4f}".format(sum_ssim_zssr / num))
+        print("ave_psnr_bicubic:\t{:.2f}".format(sum_psnr_bicubic / num))
+        print("ave_psnr_zssr:\t{:.2f}".format(sum_psnr_zssr / num))

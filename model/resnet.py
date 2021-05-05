@@ -25,14 +25,13 @@ class ResNet(nn.Module):
     def forward(self, x):
         with torch.no_grad():
             bibubic = interpolate(x, scale_factor=self.sf)
-
         fea = self.relu(self.conv0(x))
         res = self.res0(fea)
         res = self.res1(res)
         res = self.res2(res)
-        res = res * 0.1 + fea
+        res = res + fea
         res = self.sub_pixel(self.conv1(res))
-        out = res * 0.1 + bibubic
+        out = res + bibubic
         return out
 
     def _initialize_weights(self):

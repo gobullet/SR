@@ -39,21 +39,20 @@ if __name__ == '__main__':
             l0.show()
     a = transforms
 """
+import os
+
+
+# 遍历文件夹
+def file():
+    ssim_bicubic = 0.988888
+    psnr_bicubic = 36.545646
+    ssim_zssr = 0.988888
+    psnr_zssr = 36.545646
+    fo = open(os.path.join('PSNR_and_SSIM.txt'), mode='a')
+    fo.write('name_img:\n')
+    fo.write('bicubic: psnr:{:.2f}\tssim:{:.4f}\tzssr: psnr_zssr:{:.2f}\tssim:{:.4f}\n'
+             .format(psnr_bicubic, ssim_bicubic, psnr_zssr, ssim_zssr))
+
 
 if __name__ == '__main__':
-    config = get_config()
-
-    crop_size = config.crop_size
-
-    img = Image.open(config.img)
-    t_img = transforms.ToTensor()(img)
-    size = t_img.size()
-
-    p_size = size[1:3]
-    while crop_size > min(p_size[0:2]) or crop_size ** 2 > p_size[0] * p_size[1] // 4:
-        crop_size = crop_size // 2
-
-
-
-
-
+    file()
