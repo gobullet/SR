@@ -13,7 +13,7 @@ class ResBlock(nn.Module):
     def forward(self, x):
         res = self.relu(self.conv0(x))
         res = self.conv1(res)
-        out = 0.1 * res + x
+        out = res + x
         return out
 
     def _initialize_weights(self):

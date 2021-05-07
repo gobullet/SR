@@ -29,9 +29,9 @@ class ResNet(nn.Module):
         res = self.res0(fea)
         res = self.res1(res)
         res = self.res2(res)
-        res = res + fea
+        res = 0.1 * res + fea
         res = self.sub_pixel(self.conv1(res))
-        out = res + bibubic
+        out = 0.1 * res + bibubic
         return out
 
     def _initialize_weights(self):
@@ -39,10 +39,3 @@ class ResNet(nn.Module):
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight.data, mode='fan_in', nonlinearity='relu')
 
-    """
-    def _initialize_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-    """

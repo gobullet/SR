@@ -68,17 +68,15 @@ class Datasets(Dataset):
         return factors
 
     def _father_to_son(self, hr):
-
+        # sf倍缩小
         lr = hr.resize(((hr.size[0] // self.sf),
                         (hr.size[1] // self.sf)))
-
         # 加噪
         t_lr = transforms.ToTensor()(lr)
         t_lr = t_lr + (self.noise_std * torch.randn(t_lr.size())).clamp(min=0, max=1)
         lr = transforms.ToPILImage()(t_lr)
         # 放大sf倍，作为输入
         lr = lr.resize(hr.size, resample=PIL.Image.BICUBIC)
-
         return lr
 
     def _trans(self, high_resolution, low_resolution):

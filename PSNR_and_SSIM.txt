@@ -1,4 +1,0 @@
-
-bicubic: psnr:36.55	ssim:0.9889	zssr: psnr_zssr:36.55	ssim:0.9889
-name_img:
-bicubic: psnr:36.55	ssim:0.9889	zssr: psnr_zssr:36.55	ssim:0.9889
