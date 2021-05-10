@@ -15,6 +15,7 @@ from dataset2 import Datasets2
 from model.conv8 import ZSSRNet
 import matplotlib.pyplot as plt
 import pytest
+import random
 
 """
 if __name__ == '__main__':
@@ -42,7 +43,7 @@ if __name__ == '__main__':
 import os
 
 
-# 遍历文件夹
+
 def file():
     ssim_bicubic = 0.988888
     psnr_bicubic = 36.545646
@@ -55,4 +56,5 @@ def file():
 
 
 if __name__ == '__main__':
-    file()
+    print(random.randint(0,0))
+    #file()

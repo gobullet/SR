@@ -100,18 +100,18 @@ class Datasets2(Dataset):
 
         # random crop
         w, h = low_resolution.size
-        sw, sh = self.crop_size // self.sf, self.crop_size // self.sf
+        tw, th = self.crop_size // self.sf, self.crop_size // self.sf
 
-        if w < sw:
-            sw = w // 2
-        if h < sh:
-            sh = h // 2
+        if w < tw:
+            tw = w // 2
+        if h < th:
+            th = h // 2
 
-        i = random.randint(0, h - sh)
-        j = random.randint(0, w - sw)
+        i = random.randint(0, h - th)
+        j = random.randint(0, w - tw)
 
-        high_resolution = TF.crop(high_resolution, i * self.sf, j * self.sf, sh * self.sf, sw * self.sf)
-        low_resolution = TF.crop(low_resolution, i, j, sh, sw)
+        high_resolution = TF.crop(high_resolution, i * self.sf, j * self.sf, th * self.sf, tw * self.sf)
+        low_resolution = TF.crop(low_resolution, i, j, th, tw)
 
         high_resolution = TF.to_tensor(high_resolution)
         low_resolution = TF.to_tensor(low_resolution)
