@@ -210,9 +210,9 @@ if __name__ == "__main__":
                 sum_ssim_zssr = sum_ssim_zssr + ssim_zssr
                 sum_time = sum_time + train_time
                 num = num + 1
-        print("ave_ssim_bicubic:\t{:.4f}".format(sum_ssim_bicubic / num))
-        print("ave_ssim_zssr:\t\t{:.4f}".format(sum_ssim_zssr / num))
         print("ave_psnr_bicubic:\t{:.2f}".format(sum_psnr_bicubic / num))
+        print("ave_ssim_bicubic:\t{:.4f}".format(sum_ssim_bicubic / num))
         print("ave_psnr_zssr:\t\t{:.2f}".format(sum_psnr_zssr / num))
+        print("ave_ssim_zssr:\t\t{:.4f}".format(sum_ssim_zssr / num))
         print('train time:{:.1f}'.format(sum_time))
         print("total number:{}".format(num))

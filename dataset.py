@@ -97,7 +97,6 @@ class Datasets(Dataset):
         # random crop
         w, h = low_resolution.size
         tw, th = self.crop_size, self.crop_size
-
         if w < tw:
             tw = w // 2
         if h < th:
